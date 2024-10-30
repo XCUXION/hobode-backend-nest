@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,7 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum FacilityTypes {
+  HOSTEL
+  HOMESTEL
+  APARTMENT
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPPLE
+  QUAD
+}
+
+enum MomoPaymentType {
+  MTN
+  TELECEL
+  AIRTELTIGO
+}
+
 model User {
+  id            String         @id @default(uuid())
+  firstName     String         @db.VarChar(255)
+  lastName      String         @db.VarChar(255)
+  email         String         @unique
+  password      String
+  emailVerified Boolean        @default(false)
+  schoolId      String
+  school        School         @relation(fields: [schoolId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now())
+  reservations  Reservation[]
+}
+
+model HostelOwner {
   id            String         @id @default(uuid())
   firstName     String         @db.VarChar(255)
   lastName      String         @db.VarChar(255)
@@ -22,4 +49,67 @@ model User {
   emailVerified Boolean        @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @default(now())
+  facilities    Facility[]
+}
+
+model School {
+  id            String         @id @default(uuid())
+  name          String
+  userId        String
+  students      User[]
+}
+
+model Facility {
+  id                    String                  @id @default(uuid())
+  name                  String
+  type                  FacilityTypes
+  rooms                 Room[]
+  description           String
+  location              String
+  coodinates            Json
+  cardPaymentOptionId   String?
+  cardPaymentOption     CardPaymentOption?      @relation("FacilityCardPaymentRelation")
+  momoPaymentOption     MomoPaymentOption[]
+  ownerId               String
+  hotelOwner            HostelOwner             @relation(fields: [ownerId], references: [id])
+  reservations          Reservation[]
+}
+
+model CardPaymentOption {
+  id            String      @id @default(uuid())
+  name          String      @db.VarChar(255)
+  cardNumber    BigInt
+  expiration    DateTime
+  cvv           Int
+  address       Json
+  facilityId    String      @unique
+  facility      Facility    @relation("FacilityCardPaymentRelation", fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
+
+model MomoPaymentOption {
+  id            String              @id @default(uuid())
+  type          MomoPaymentType
+  number        Int
+  facilityId    String
+  facility      Facility            @relation(fields: [facilityId], references: [id])
+}
+
+model Room {
+  id            String         @id @default(uuid())
+  type          RoomType
+  price         Float
+  description   String?
+  facilityId    String
+  facility      Facility      @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
+model Reservation {
+  id            String         @id @default(uuid())
+  facilityId    String
+  facility      Facility       @relation(fields: [facilityId], references: [id])
+  studentId     String
+  student       User           @relation(fields: [studentId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
 }
